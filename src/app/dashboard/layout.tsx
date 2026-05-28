@@ -40,7 +40,10 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const logout = useAuthStore((s) => s.logout);
   const router = useRouter();
 
-  useEffect(() => setMounted(true), []);
+  useEffect(() => {
+    const frame = requestAnimationFrame(() => setMounted(true));
+    return () => cancelAnimationFrame(frame);
+  }, []);
 
   useEffect(() => {
     if (mounted && !isAuthenticated) {

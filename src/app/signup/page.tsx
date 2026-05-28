@@ -1,7 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
-import { Shield, Eye, EyeOff, GitFork, Mail, Lock, User, ArrowRight, Sparkles } from "lucide-react";
+import { Shield, Eye, EyeOff, GitFork, Mail, Lock, User, ArrowRight } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
@@ -17,7 +17,6 @@ export default function SignupPage() {
   const [error, setError] = useState("");
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
-  const isLocalApi = API_BASE.includes("localhost") || API_BASE.includes("127.0.0.1");
 
   const startOAuth = (provider: "github" | "google") => {
     window.location.href = getOAuthStartUrl(provider);
@@ -42,14 +41,6 @@ export default function SignupPage() {
       router.push("/dashboard");
     } catch (error: unknown) {
       const message = error instanceof Error ? error.message : "Signup failed";
-      if (isLocalApi && message === "Failed to fetch") {
-        login(
-          { id: "demo-new-user", email, full_name: name, role: "user", preferences: { theme: "dark", notifications: true } },
-          "demo-token"
-        );
-        router.push("/dashboard");
-        return;
-      }
       setError(message);
     } finally {
       setLoading(false);

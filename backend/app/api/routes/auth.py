@@ -11,7 +11,7 @@ import uuid
 import httpx
 import jwt
 import structlog
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Header, HTTPException, Request
 from fastapi.responses import RedirectResponse
 from pydantic import BaseModel
 
@@ -110,6 +110,36 @@ def verify_token(token: str) -> dict:
         raise HTTPException(status_code=401, detail="Token expired") from exc
     except jwt.InvalidTokenError as exc:
         raise HTTPException(status_code=401, detail="Invalid token") from exc
+
+
+async def ensure_profile(user_id: str, email: str, full_name: str = "") -> None:
+    """Create or update the Supabase profile row required by app tables."""
+    if settings.DEMO_MODE:
+        return
+
+    try:
+        from app.db.supabase_client import get_supabase
+
+        supabase = get_supabase()
+        supabase.table("profiles").upsert(
+            {
+                "id": user_id,
+                "email": email,
+                "full_name": full_name or email,
+                "role": "user",
+                "preferences": {"theme": "dark", "notifications": True},
+            }
+        ).execute()
+    except Exception as exc:
+        logger.error("Profile upsert failed", error=str(exc), user_id=user_id, email=email)
+        raise HTTPException(status_code=503, detail=f"Supabase profile setup failed: {exc}") from exc
+
+
+def require_user_payload(authorization: Optional[str]) -> dict:
+    """Decode a Bearer token from an Authorization header."""
+    if not authorization or not authorization.lower().startswith("bearer "):
+        raise HTTPException(status_code=401, detail="Authentication required")
+    return verify_token(authorization.split(" ", 1)[1])
 
 
 def create_oauth_state(provider: str, next_path: str) -> str:
@@ -305,13 +335,17 @@ async def login(request: LoginRequest):
             }
         )
 
+        metadata = auth_response.user.user_metadata or {}
+        full_name = metadata.get("full_name", "")
+        await ensure_profile(auth_response.user.id, auth_response.user.email, full_name)
+
         token, expires = create_token(auth_response.user.id, auth_response.user.email)
         return AuthResponse(
             access_token=token,
             user={
                 "id": auth_response.user.id,
                 "email": auth_response.user.email,
-                "full_name": auth_response.user.user_metadata.get("full_name", ""),
+                "full_name": full_name,
                 "role": "user",
             },
             expires_at=expires.isoformat(),
@@ -367,6 +401,8 @@ async def signup(request: SignupRequest):
                 "options": {"data": {"full_name": request.full_name}},
             }
         )
+
+        await ensure_profile(auth_response.user.id, auth_response.user.email, request.full_name)
 
         token, expires = create_token(auth_response.user.id, auth_response.user.email)
         return AuthResponse(
@@ -462,13 +498,14 @@ async def oauth_callback(
 
 
 @router.get("/me")
-async def get_current_user():
-    """Get current user profile (simplified for demo)."""
+async def get_current_user(authorization: Optional[str] = Header(default=None)):
+    """Get current user profile from the signed app token."""
+    payload = require_user_payload(authorization)
     return {
-        "id": "demo-admin-001",
-        "email": "admin@saksham.ai",
-        "full_name": "Saksham Admin",
-        "role": "admin",
+        "id": payload["sub"],
+        "email": payload["email"],
+        "full_name": payload.get("email", ""),
+        "role": "user",
         "preferences": {"theme": "dark", "notifications": True},
     }
 

@@ -13,11 +13,12 @@ logger = get_logger("redis")
 class RedisClient:
     """
     Redis client wrapper. Uses Upstash REST API when available,
-    falls back to an in-memory dict for demo mode.
+    and uses in-memory storage only when DEMO_MODE is explicitly enabled.
     """
 
     def __init__(self):
         self.connected = False
+        self._startup_error = ""
         self._memory_store: Dict[str, Any] = {}
         self._ttl_store: Dict[str, float] = {}
 
@@ -33,13 +34,25 @@ class RedisClient:
                 self.connected = True
                 logger.info("Redis connected", url=settings.UPSTASH_REDIS_URL[:30] + "...")
             except Exception as e:
-                logger.warning(f"Redis connection failed, using in-memory fallback: {e}")
+                self._startup_error = str(e)
+                logger.error(f"Redis connection failed: {e}")
                 self.connected = False
-        else:
+        elif settings.DEMO_MODE:
             logger.info("Using in-memory cache (demo mode)")
+        else:
+            self._startup_error = "UPSTASH_REDIS_URL is required for production scan progress caching"
+            logger.error(self._startup_error)
+
+    def _ensure_available(self):
+        if self.connected:
+            return
+        if settings.DEMO_MODE:
+            return
+        raise RuntimeError(f"Redis is not available: {self._startup_error}")
 
     async def get(self, key: str) -> Optional[str]:
         """Get a value by key."""
+        self._ensure_available()
         if self.connected:
             return self.client.get(key)
 
@@ -51,6 +64,7 @@ class RedisClient:
 
     async def set(self, key: str, value: str, ttl: int = 3600):
         """Set a value with an optional TTL in seconds."""
+        self._ensure_available()
         if self.connected:
             self.client.setex(key, ttl, value)
         else:
@@ -59,6 +73,7 @@ class RedisClient:
 
     async def delete(self, key: str):
         """Delete a key."""
+        self._ensure_available()
         if self.connected:
             self.client.delete(key)
         else:

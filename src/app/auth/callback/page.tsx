@@ -2,7 +2,7 @@
 
 import { Shield } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect } from "react";
 import { useAuthStore } from "@/stores";
 
 function normalizeNextPath(nextPath: string | null): string {
@@ -15,7 +15,6 @@ function normalizeNextPath(nextPath: string | null): string {
 export default function AuthCallbackPage() {
   const router = useRouter();
   const login = useAuthStore((s) => s.login);
-  const [error, setError] = useState("");
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.hash.replace(/^#/, ""));
@@ -25,7 +24,7 @@ export default function AuthCallbackPage() {
     const fullName = params.get("full_name");
 
     if (!token || !email || !id || !fullName) {
-      setError("OAuth sign-in did not return a complete session.");
+      router.replace("/login");
       return;
     }
 
@@ -50,9 +49,9 @@ export default function AuthCallbackPage() {
         <div className="mx-auto mb-5 w-12 h-12 rounded-xl gradient-bg flex items-center justify-center">
           <Shield className="w-6 h-6 text-white" />
         </div>
-        <h1 className="text-xl font-semibold mb-2">{error ? "Sign-in failed" : "Signing you in"}</h1>
+        <h1 className="text-xl font-semibold mb-2">Signing you in</h1>
         <p className="text-sm text-[hsl(var(--muted-foreground))]">
-          {error || "Finishing authentication and opening your dashboard..."}
+          Finishing authentication and opening your dashboard...
         </p>
       </div>
     </div>

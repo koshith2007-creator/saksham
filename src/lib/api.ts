@@ -3,7 +3,18 @@
  * Handles authentication, scan management, and dashboard data.
  */
 
-const API_BASE = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000/api";
+const API_BASE =
+  process.env.NEXT_PUBLIC_API_URL ||
+  (typeof window === "undefined" ? "http://localhost:8000/api" : "/api");
+
+interface ApiUser {
+  id: string;
+  email: string;
+  full_name: string;
+  avatar_url?: string;
+  role: string;
+  preferences: Record<string, unknown>;
+}
 
 // ============================================================
 // Auth Token Management
@@ -32,11 +43,11 @@ function removeToken(): void {
   localStorage.removeItem("saksham_token");
 }
 
-function setUser(user: any): void {
+function setUser(user: ApiUser): void {
   localStorage.setItem("saksham_user", JSON.stringify(user));
 }
 
-function getUser(): any | null {
+function getUser(): ApiUser | null {
   if (typeof window === "undefined") return null;
   const raw = localStorage.getItem("saksham_user");
   return raw ? JSON.parse(raw) : null;
@@ -49,7 +60,7 @@ function removeUser(): void {
 // ============================================================
 // Fetch Wrapper with Auth
 // ============================================================
-async function apiFetch<T = any>(
+async function apiFetch<T = unknown>(
   endpoint: string,
   options: RequestInit = {}
 ): Promise<T> {
@@ -76,11 +87,9 @@ async function apiFetch<T = any>(
     }
 
     return response.json();
-  } catch (error: any) {
-    if (error.message === "Failed to fetch") {
-      // Backend unreachable — return mock data
-      console.warn(`SAKSHAM API unreachable (${endpoint}), using demo data`);
-      return getMockData(endpoint) as T;
+  } catch (error: unknown) {
+    if (error instanceof Error && error.message === "Failed to fetch") {
+      throw new Error(`API service is unreachable at ${API_BASE}. Check the Vercel backend deployment.`);
     }
     throw error;
   }
@@ -103,14 +112,7 @@ export interface SignupRequest {
 export interface AuthResponse {
   access_token: string;
   token_type: string;
-  user: {
-    id: string;
-    email: string;
-    full_name: string;
-    avatar_url?: string;
-    role: string;
-    preferences: Record<string, any>;
-  };
+  user: ApiUser;
   expires_at: string;
 }
 
@@ -203,6 +205,23 @@ export async function getVulnerabilityTrends() {
 }
 
 // ============================================================
+// AI Chat API
+// ============================================================
+export interface ChatResponse {
+  id: string;
+  role: "assistant";
+  content: string;
+  timestamp: string;
+}
+
+export async function sendChatMessage(message: string, repository_id = ""): Promise<ChatResponse> {
+  return apiFetch<ChatResponse>("/chat/", {
+    method: "POST",
+    body: JSON.stringify({ message, repository_id }),
+  });
+}
+
+// ============================================================
 // Repository API
 // ============================================================
 export async function listRepositories() {
@@ -217,41 +236,34 @@ export async function addRepository(data: { url: string; name?: string }) {
 }
 
 // ============================================================
+// Vulnerability API
+// ============================================================
+export async function listVulnerabilities() {
+  return apiFetch("/vulnerabilities/");
+}
+
+export async function getVulnerability(vulnerabilityId: string) {
+  return apiFetch(`/vulnerabilities/${vulnerabilityId}`);
+}
+
+// ============================================================
+// Report API
+// ============================================================
+export async function listReports() {
+  return apiFetch("/reports/");
+}
+
+export async function generateReport() {
+  return apiFetch("/reports/generate", {
+    method: "POST",
+  });
+}
+
+// ============================================================
 // Health Check
 // ============================================================
 export async function checkHealth() {
   return apiFetch("/health");
-}
-
-// ============================================================
-// Mock Data Fallback (when backend is unreachable)
-// ============================================================
-function getMockData(endpoint: string): any {
-  if (endpoint === "/dashboard/stats") {
-    return {
-      stats: {
-        total_scans: 247,
-        active_scans: 3,
-        total_vulnerabilities: 1342,
-        critical_threats: 23,
-        high_threats: 67,
-        medium_threats: 189,
-        low_threats: 412,
-        false_positives_prevented: 891,
-        security_score: 73,
-      },
-    };
-  }
-  if (endpoint === "/scans/") {
-    return { scans: [] };
-  }
-  if (endpoint.startsWith("/scans/") && endpoint.endsWith("/vulnerabilities")) {
-    return { vulnerabilities: [] };
-  }
-  if (endpoint === "/repositories/") {
-    return { repositories: [] };
-  }
-  return {};
 }
 
 export { getToken, getUser, API_BASE };

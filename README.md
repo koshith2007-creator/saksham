@@ -1,4 +1,4 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+SAKSHAM is a Next.js frontend with a FastAPI backend packaged as a Vercel Python function.
 
 ## Getting Started
 
@@ -29,8 +29,26 @@ To learn more about Next.js, take a look at the following resources:
 
 You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
 
-## Deploy on Vercel
+## Deploy on Vercel + Supabase
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+Deploy this folder as one Vercel project. The frontend is served by Next.js and backend API requests to `/api/*` are routed to `api/index.py`, which imports `backend/app/main.py`.
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Use these production environment variables in Vercel:
+
+```env
+APP_NAME=SAKSHAM
+APP_VERSION=1.0.0
+ENVIRONMENT=production
+DEBUG=false
+CORS_ORIGINS=https://YOUR-VERCEL-DOMAIN.vercel.app
+FRONTEND_URL=https://YOUR-VERCEL-DOMAIN.vercel.app
+JWT_SECRET=PASTE-YOUR-LONG-RANDOM-SECRET
+DEMO_MODE=false
+SERVERLESS_MODE=true
+SUPABASE_URL=https://YOUR-PROJECT.supabase.co
+SUPABASE_ANON_KEY=YOUR-ANON-KEY
+SUPABASE_SERVICE_ROLE_KEY=YOUR-SERVICE-ROLE-KEY
+GEMINI_API_KEY=YOUR-GEMINI-API-KEY
+```
+
+Leave `NEXT_PUBLIC_API_URL` empty for the single Vercel project setup. The app will call `/api` on the same domain.

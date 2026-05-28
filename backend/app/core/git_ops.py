@@ -4,8 +4,11 @@ import os
 import shutil
 import asyncio
 import tempfile
+import zipfile
+from io import BytesIO
 from typing import Dict, Any, List, Optional, Tuple
 from pathlib import Path
+from urllib.parse import urlparse
 
 from app.config import settings
 from app.utils.logger import get_logger
@@ -47,6 +50,79 @@ SENSITIVE_PATTERNS = {
     "aws.py", "azure.py", "gcp.py",
 }
 
+GITHUB_HOSTS = {"github.com", "www.github.com"}
+
+
+def _parse_github_repo_url(repo_url: str) -> Optional[Tuple[str, str]]:
+    parsed = urlparse(repo_url.rstrip("/"))
+    if parsed.netloc.lower() not in GITHUB_HOSTS:
+        return None
+
+    parts = [part for part in parsed.path.strip("/").split("/") if part]
+    if len(parts) < 2:
+        return None
+
+    return parts[0], parts[1].removesuffix(".git")
+
+
+def _safe_extract_zip(archive: zipfile.ZipFile, target_dir: str) -> None:
+    target_root = os.path.abspath(target_dir)
+    target_prefix = target_root + os.sep
+
+    for member in archive.infolist():
+        target_path = os.path.abspath(os.path.join(target_dir, member.filename))
+        if target_path == target_root or target_path.startswith(target_prefix):
+            archive.extract(member, target_dir)
+
+
+async def _download_github_archive(
+    repo_url: str,
+    branch: str,
+    clone_path: str,
+) -> Optional[Tuple[str, Dict[str, Any]]]:
+    repo_info = _parse_github_repo_url(repo_url)
+    if not repo_info:
+        return None
+
+    owner, repo_name = repo_info
+    candidate_branches = list(dict.fromkeys([branch, "main", "master"]))
+    archive_root = tempfile.mkdtemp(prefix="saksham-archive-", dir=os.path.dirname(clone_path))
+
+    try:
+        import httpx
+
+        async with httpx.AsyncClient(timeout=120.0, follow_redirects=True) as client:
+            for candidate_branch in candidate_branches:
+                archive_url = f"https://codeload.github.com/{owner}/{repo_name}/zip/refs/heads/{candidate_branch}"
+                response = await client.get(archive_url)
+                if response.status_code == 404:
+                    continue
+                response.raise_for_status()
+
+                with zipfile.ZipFile(BytesIO(response.content)) as archive:
+                    _safe_extract_zip(archive, archive_root)
+
+                extracted_dirs = [path for path in Path(archive_root).iterdir() if path.is_dir()]
+                if not extracted_dirs:
+                    raise ValueError("GitHub archive did not contain a repository directory")
+
+                if os.path.exists(clone_path):
+                    shutil.rmtree(clone_path, ignore_errors=True)
+                shutil.move(str(extracted_dirs[0]), clone_path)
+
+                logger.info("Repository downloaded from GitHub archive", path=clone_path, branch=candidate_branch)
+                return clone_path, {
+                    "repo_name": repo_name,
+                    "branch": candidate_branch,
+                    "clone_method": "github_archive",
+                }
+    except Exception as e:
+        logger.warning(f"GitHub archive download failed: {e}")
+    finally:
+        shutil.rmtree(archive_root, ignore_errors=True)
+
+    return None
+
 
 def detect_language(file_path: str) -> str:
     """Detect programming language from file extension."""
@@ -68,7 +144,7 @@ async def clone_repository(repo_url: str, branch: str = "main") -> Tuple[str, Di
     """
     Clone a repository to a temporary directory.
     Returns (clone_path, metadata).
-    In demo mode, creates a mock directory structure.
+    In demo mode only, creates a mock directory structure.
     """
     scan_dir = settings.SCAN_TEMP_DIR
     os.makedirs(scan_dir, exist_ok=True)
@@ -89,6 +165,11 @@ async def clone_repository(repo_url: str, branch: str = "main") -> Tuple[str, Di
             "clone_method": "demo",
         }
 
+    if settings.SERVERLESS_MODE:
+        archive_result = await _download_github_archive(repo_url, branch, clone_path)
+        if archive_result:
+            return archive_result
+
     try:
         logger.info(f"📥 Cloning repository", url=repo_url, branch=branch)
         process = await asyncio.create_subprocess_exec(
@@ -101,9 +182,11 @@ async def clone_repository(repo_url: str, branch: str = "main") -> Tuple[str, Di
         if process.returncode != 0:
             error = stderr.decode().strip()
             logger.error(f"❌ Clone failed: {error}")
-            # Fall back to demo repo
-            clone_path = _create_demo_repo(clone_path, repo_name)
-            return clone_path, {"repo_name": repo_name, "clone_method": "demo_fallback", "error": error}
+            archive_result = await _download_github_archive(repo_url, branch, clone_path)
+            if archive_result:
+                return archive_result
+
+            raise RuntimeError(f"Repository clone failed: {error}")
 
         # Get commit SHA
         sha_process = await asyncio.create_subprocess_exec(
@@ -122,12 +205,18 @@ async def clone_repository(repo_url: str, branch: str = "main") -> Tuple[str, Di
         }
     except asyncio.TimeoutError:
         logger.error("❌ Clone timed out")
-        clone_path = _create_demo_repo(clone_path, repo_name)
-        return clone_path, {"repo_name": repo_name, "clone_method": "demo_fallback", "error": "timeout"}
+        archive_result = await _download_github_archive(repo_url, branch, clone_path)
+        if archive_result:
+            return archive_result
+
+        raise RuntimeError("Repository clone timed out")
     except Exception as e:
         logger.error(f"❌ Clone error: {e}")
-        clone_path = _create_demo_repo(clone_path, repo_name)
-        return clone_path, {"repo_name": repo_name, "clone_method": "demo_fallback", "error": str(e)}
+        archive_result = await _download_github_archive(repo_url, branch, clone_path)
+        if archive_result:
+            return archive_result
+
+        raise RuntimeError(f"Repository clone failed: {e}") from e
 
 
 def _create_demo_repo(clone_path: str, repo_name: str) -> str:

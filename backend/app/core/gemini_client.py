@@ -175,7 +175,7 @@ class GeminiClient:
         temperature: float = 0.1,
         max_tokens: int = 4096,
         retries: int = 3,
-        fallback_to_mock: bool = True,
+        fallback_to_mock: bool = False,
     ) -> str:
         """Generate text with retry logic."""
         await self._ensure_init()
@@ -224,7 +224,7 @@ class GeminiClient:
         prompt = PROMPTS["static_analysis"].format(
             file_path=file_path, language=language, code=code
         )
-        response = await self.generate(prompt)
+        response = await self.generate(prompt, fallback_to_mock=settings.DEMO_MODE)
         try:
             return json.loads(response)
         except json.JSONDecodeError:
@@ -240,7 +240,7 @@ class GeminiClient:
             code_snippet=vuln_data.get("code_snippet", ""),
             context=context,
         )
-        response = await self.generate(prompt)
+        response = await self.generate(prompt, fallback_to_mock=settings.DEMO_MODE)
         try:
             return json.loads(response)
         except json.JSONDecodeError:
@@ -256,7 +256,7 @@ class GeminiClient:
             language=language,
             code_snippet=vuln_data.get("code_snippet", ""),
         )
-        response = await self.generate(prompt)
+        response = await self.generate(prompt, fallback_to_mock=settings.DEMO_MODE)
         try:
             return json.loads(response)
         except json.JSONDecodeError:
@@ -267,7 +267,7 @@ class GeminiClient:
         prompt = PROMPTS["repo_intelligence"].format(
             repo_name=repo_name, file_tree=file_tree, samples=samples
         )
-        response = await self.generate(prompt)
+        response = await self.generate(prompt, fallback_to_mock=settings.DEMO_MODE)
         try:
             return json.loads(response)
         except json.JSONDecodeError:

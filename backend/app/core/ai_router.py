@@ -22,7 +22,6 @@ class TaskComplexity(str, Enum):
 class ModelProvider(str, Enum):
     GEMINI = "gemini"
     HUGGINGFACE = "huggingface"
-    MOCK = "mock"
 
 
 ROUTING_TABLE = {
@@ -38,7 +37,7 @@ ROUTING_TABLE = {
 
 
 class AIRouter:
-    """Routes AI tasks to Gemini first, Hugging Face second, mock data last."""
+    """Routes AI tasks to Gemini first, then Hugging Face as backup."""
 
     def __init__(self):
         self.request_count = 0
@@ -118,7 +117,9 @@ class AIRouter:
         temperature: float = 0.1,
         max_tokens: int = 4096,
     ) -> str:
-        """Try Gemini first, Hugging Face second, then mock data."""
+        """Try Gemini first, then Hugging Face. Raise if no provider works."""
+        errors: list[str] = []
+
         if settings.GEMINI_API_KEY:
             try:
                 return await gemini_client.generate(
@@ -128,7 +129,10 @@ class AIRouter:
                     fallback_to_mock=False,
                 )
             except Exception as exc:
-                logger.warning("Gemini failed, trying Hugging Face fallback", task=task_type, error=str(exc))
+                errors.append(f"Gemini failed: {exc}")
+                logger.warning("Gemini failed, trying Hugging Face backup", task=task_type, error=str(exc))
+        else:
+            errors.append("Gemini API key is not configured")
 
         if settings.HUGGINGFACE_API_TOKEN:
             try:
@@ -138,9 +142,16 @@ class AIRouter:
                     max_tokens=max_tokens,
                 )
             except Exception as exc:
-                logger.warning("Hugging Face fallback failed, using mock response", task=task_type, error=str(exc))
+                errors.append(f"Hugging Face failed: {exc}")
+                logger.warning("Hugging Face backup failed", task=task_type, error=str(exc))
+        else:
+            errors.append("Hugging Face API token is not configured")
 
-        return gemini_client._mock_response(prompt)
+        if settings.DEMO_MODE:
+            logger.warning("Using mock AI response because DEMO_MODE is enabled", task=task_type)
+            return gemini_client._mock_response(prompt)
+
+        raise RuntimeError("AI provider unavailable. " + " | ".join(errors))
 
     def _parse_json(self, response: str, fallback: Any) -> Any:
         try:

@@ -16,12 +16,6 @@ interface RepositoryRecord {
   vulns?: number;
 }
 
-const DEMO_REPOS: RepositoryRecord[] = [
-  { id: "r1", name: "payment-service", url: "https://github.com/acme-corp/payment-service", language: "Python", framework: "FastAPI", health_score: 62, vulns: 12, last_scanned_at: "2026-05-28T09:55:00Z" },
-  { id: "r2", name: "auth-gateway", url: "https://github.com/acme-corp/auth-gateway", language: "TypeScript", framework: "Express", health_score: 78, vulns: 4, last_scanned_at: "2026-05-28T08:25:00Z" },
-  { id: "r3", name: "user-api", url: "https://github.com/acme-corp/user-api", language: "Java", framework: "Spring Boot", health_score: 85, vulns: 8, last_scanned_at: "2026-05-28T07:15:00Z" },
-];
-
 const healthColor = (health: number) => health >= 80 ? "text-emerald-500" : health >= 60 ? "text-amber-500" : "text-red-500";
 const healthBg = (health: number) => health >= 80 ? "bg-emerald-500" : health >= 60 ? "bg-amber-500" : "bg-red-500";
 
@@ -32,7 +26,7 @@ function formatTimestamp(value?: string): string {
 }
 
 export default function RepositoriesPage() {
-  const [repositories, setRepositories] = useState<RepositoryRecord[]>(DEMO_REPOS);
+  const [repositories, setRepositories] = useState<RepositoryRecord[]>([]);
   const [repoUrl, setRepoUrl] = useState("");
   const [showAddRepo, setShowAddRepo] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -47,11 +41,10 @@ export default function RepositoriesPage() {
     setLoading(true);
     try {
       const data = await listRepositories() as { repositories?: RepositoryRecord[] };
-      const nextRepositories = Array.isArray(data.repositories) && data.repositories.length > 0 ? data.repositories : DEMO_REPOS;
-      setRepositories(nextRepositories);
+      setRepositories(Array.isArray(data.repositories) ? data.repositories : []);
       setError("");
     } catch (error) {
-      setRepositories(DEMO_REPOS);
+      setRepositories([]);
       setError(error instanceof Error ? error.message : "Unable to load repositories");
     } finally {
       setLoading(false);

@@ -30,7 +30,7 @@ pydantic-settings==2.9.1
 gitpython==3.1.44
 
 # Security
-# redis==5.3.0 depends on PyJWT~=2.9.0, so this pin keeps Railway builds resolvable.
+# redis==5.3.0 depends on PyJWT~=2.9.0, so this pin keeps builds resolvable.
 pyjwt==2.9.0
 cryptography==44.0.3
 passlib[bcrypt]==1.7.4

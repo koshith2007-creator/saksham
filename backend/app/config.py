@@ -21,6 +21,7 @@ class Settings(BaseSettings):
     HOST: str = "0.0.0.0"
     PORT: int = 8000
     CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001,https://saksham-snowy.vercel.app"
+    SERVERLESS_MODE: bool = os.getenv("VERCEL") == "1"
     
     # Supabase
     SUPABASE_URL: str = ""
@@ -58,7 +59,7 @@ class Settings(BaseSettings):
     SCAN_TIMEOUT_SECONDS: int = 300
     
     # Demo Mode
-    DEMO_MODE: bool = True
+    DEMO_MODE: bool = False
     DEMO_USER_EMAIL: str = "admin@saksham.ai"
     DEMO_USER_PASSWORD: str = "saksham2026"
     DEMO_USER_NAME: str = "Saksham Admin"

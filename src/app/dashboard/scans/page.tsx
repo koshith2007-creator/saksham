@@ -34,53 +34,6 @@ interface ScanRecord {
   completed_at?: string | null;
 }
 
-const DEMO_SCANS: ScanRecord[] = [
-  {
-    id: "scan-001",
-    repository_name: "payment-service",
-    repository_url: "https://github.com/acme-corp/payment-service",
-    status: "completed",
-    scan_type: "full",
-    total_vulnerabilities: 12,
-    critical_count: 2,
-    high_count: 4,
-    medium_count: 3,
-    low_count: 3,
-    files_scanned: 234,
-    duration_seconds: 34,
-    created_at: "2026-05-28T09:55:00Z",
-  },
-  {
-    id: "scan-002",
-    repository_name: "auth-gateway",
-    repository_url: "https://github.com/acme-corp/auth-gateway",
-    status: "scanning",
-    scan_type: "full",
-    total_vulnerabilities: 0,
-    critical_count: 0,
-    high_count: 0,
-    medium_count: 0,
-    low_count: 0,
-    files_scanned: 0,
-    created_at: "2026-05-28T10:05:00Z",
-  },
-  {
-    id: "scan-003",
-    repository_name: "user-api",
-    repository_url: "https://github.com/acme-corp/user-api",
-    status: "completed",
-    scan_type: "full",
-    total_vulnerabilities: 8,
-    critical_count: 1,
-    high_count: 2,
-    medium_count: 3,
-    low_count: 2,
-    files_scanned: 189,
-    duration_seconds: 28,
-    created_at: "2026-05-28T08:15:00Z",
-  },
-];
-
 const statusConfig: Record<string, { icon: LucideIcon; color: string; bg: string }> = {
   completed: { icon: CheckCircle2, color: "text-emerald-500", bg: "bg-emerald-500/10" },
   scanning: { icon: Loader2, color: "text-amber-500", bg: "bg-amber-500/10" },
@@ -95,7 +48,7 @@ function formatTimestamp(value?: string | null): string {
 }
 
 export default function ScansPage() {
-  const [scans, setScans] = useState<ScanRecord[]>(DEMO_SCANS);
+  const [scans, setScans] = useState<ScanRecord[]>([]);
   const [showNewScan, setShowNewScan] = useState(false);
   const [repoUrl, setRepoUrl] = useState("");
   const [search, setSearch] = useState("");
@@ -111,11 +64,10 @@ export default function ScansPage() {
     setLoadingScans(true);
     try {
       const data = await listScans() as { scans?: ScanRecord[] };
-      const nextScans = Array.isArray(data.scans) && data.scans.length > 0 ? data.scans : DEMO_SCANS;
-      setScans(nextScans);
+      setScans(Array.isArray(data.scans) ? data.scans : []);
       setError("");
     } catch (error) {
-      setScans(DEMO_SCANS);
+      setScans([]);
       setError(error instanceof Error ? error.message : "Unable to load scans right now");
     } finally {
       setLoadingScans(false);

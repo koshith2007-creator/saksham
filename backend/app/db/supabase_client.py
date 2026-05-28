@@ -1,4 +1,4 @@
-"""SAKSHAM - Supabase client wrapper with demo fallback."""
+"""SAKSHAM - Supabase client wrapper."""
 
 from typing import Optional, Dict, Any, List
 from app.config import settings
@@ -10,12 +10,13 @@ logger = get_logger("supabase")
 class SupabaseClient:
     """
     Supabase client wrapper.
-    Falls back to in-memory storage when credentials are not configured.
+    Uses in-memory storage only when DEMO_MODE is explicitly enabled.
     """
 
     def __init__(self):
         self.connected = False
         self._client = None
+        self._startup_error = ""
         self._memory_db: Dict[str, List[Dict]] = {
             "profiles": [],
             "repositories": [],
@@ -38,19 +39,32 @@ class SupabaseClient:
                 self.connected = True
                 logger.info("Supabase connected")
             except Exception as e:
-                logger.warning(f"Supabase connection failed: {e}")
-        else:
+                logger.error(f"Supabase connection failed: {e}")
+                self._startup_error = str(e)
+        elif settings.DEMO_MODE:
             logger.info("Using in-memory database (demo mode)")
+            self._startup_error = ""
+        else:
+            self._startup_error = "SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_ANON_KEY are required"
+            logger.error(self._startup_error)
+
+    def _ensure_available(self):
+        if self.connected and self._client:
+            return
+        if settings.DEMO_MODE:
+            return
+        raise RuntimeError(f"Supabase is not available: {self._startup_error}")
 
     async def insert(self, table: str, data: Dict[str, Any]) -> Dict[str, Any]:
         """Insert a record into a table."""
+        self._ensure_available()
         if self.connected and self._client:
             try:
                 result = self._client.table(table).insert(data).execute()
                 return result.data[0] if result.data else data
             except Exception as e:
                 logger.error(f"Insert failed: {e}")
-                return data
+                raise RuntimeError(f"Supabase insert into {table} failed: {e}") from e
 
         if table not in self._memory_db:
             self._memory_db[table] = []
@@ -59,6 +73,7 @@ class SupabaseClient:
 
     async def select(self, table: str, filters: Optional[Dict[str, Any]] = None, limit: int = 100) -> List[Dict]:
         """Select records from a table."""
+        self._ensure_available()
         if self.connected and self._client:
             try:
                 query = self._client.table(table).select("*").limit(limit)
@@ -69,7 +84,7 @@ class SupabaseClient:
                 return result.data or []
             except Exception as e:
                 logger.error(f"Select failed: {e}")
-                return []
+                raise RuntimeError(f"Supabase select from {table} failed: {e}") from e
 
         records = self._memory_db.get(table, [])
         if filters:
@@ -78,13 +93,14 @@ class SupabaseClient:
 
     async def update(self, table: str, record_id: str, data: Dict[str, Any], id_field: str = "id") -> Dict[str, Any]:
         """Update a record in a table."""
+        self._ensure_available()
         if self.connected and self._client:
             try:
                 result = self._client.table(table).update(data).eq(id_field, record_id).execute()
                 return result.data[0] if result.data else data
             except Exception as e:
                 logger.error(f"Update failed: {e}")
-                return data
+                raise RuntimeError(f"Supabase update on {table} failed: {e}") from e
 
         records = self._memory_db.get(table, [])
         for record in records:
@@ -95,13 +111,14 @@ class SupabaseClient:
 
     async def delete(self, table: str, record_id: str, id_field: str = "id") -> bool:
         """Delete a record from a table."""
+        self._ensure_available()
         if self.connected and self._client:
             try:
                 self._client.table(table).delete().eq(id_field, record_id).execute()
                 return True
             except Exception as e:
                 logger.error(f"Delete failed: {e}")
-                return False
+                raise RuntimeError(f"Supabase delete from {table} failed: {e}") from e
 
         records = self._memory_db.get(table, [])
         self._memory_db[table] = [record for record in records if record.get(id_field) != record_id]
@@ -114,6 +131,7 @@ class SupabaseClient:
 
     async def count(self, table: str, filters: Optional[Dict[str, Any]] = None) -> int:
         """Count records in a table."""
+        self._ensure_available()
         if self.connected and self._client:
             try:
                 query = self._client.table(table).select("*", count="exact")
@@ -122,8 +140,8 @@ class SupabaseClient:
                         query = query.eq(key, value)
                 result = query.execute()
                 return result.count or 0
-            except Exception:
-                return 0
+            except Exception as e:
+                raise RuntimeError(f"Supabase count for {table} failed: {e}") from e
 
         records = self._memory_db.get(table, [])
         if filters:
