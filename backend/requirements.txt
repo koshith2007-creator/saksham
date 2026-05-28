@@ -1,0 +1,47 @@
+# ============================================================
+# SAKSHAM Backend Dependencies
+# ============================================================
+
+# Core Framework
+fastapi==0.115.12
+uvicorn[standard]==0.34.3
+python-multipart==0.0.20
+python-dotenv==1.1.0
+
+# Async HTTP
+httpx==0.28.1
+aiohttp==3.12.4
+aiofiles==24.1.0
+
+# Supabase
+supabase==2.15.1
+
+# Redis (Upstash)
+redis==5.3.0
+
+# AI Providers
+google-generativeai==0.8.3
+
+# Data Validation
+pydantic==2.11.4
+pydantic-settings==2.9.1
+
+# Git Operations
+gitpython==3.1.44
+
+# Security
+# redis==5.3.0 depends on PyJWT~=2.9.0, so this pin keeps Railway builds resolvable.
+pyjwt==2.9.0
+cryptography==44.0.3
+passlib[bcrypt]==1.7.4
+
+# WebSockets
+# supabase/realtime currently requires websockets<15.
+websockets==14.2
+
+# Logging
+structlog==25.3.0
+
+# Utilities
+orjson==3.10.18
+tenacity==9.1.2
