@@ -74,6 +74,18 @@ async def health_check():
     }
 
 
+@app.get("/api/config/status")
+async def config_status():
+    """Return non-secret deployment configuration status."""
+    return {
+        "environment": settings.ENVIRONMENT,
+        "demo_mode": settings.DEMO_MODE,
+        "cors_origins": settings.cors_origins_list,
+        "oauth_configured": settings.oauth_configured,
+        "frontend_url": settings.FRONTEND_URL,
+    }
+
+
 # ============================================================
 # Include Routers
 # ============================================================

@@ -20,7 +20,7 @@ class Settings(BaseSettings):
     # Server
     HOST: str = "0.0.0.0"
     PORT: int = 8000
-    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001"
+    CORS_ORIGINS: str = "http://localhost:3000,http://localhost:3001,https://saksham-snowy.vercel.app"
     
     # Supabase
     SUPABASE_URL: str = ""
@@ -70,6 +70,13 @@ class Settings(BaseSettings):
     @property
     def cors_origins_list(self) -> list[str]:
         return [origin.strip() for origin in self.CORS_ORIGINS.split(",")]
+
+    @property
+    def oauth_configured(self) -> dict[str, bool]:
+        return {
+            "github": bool(self.GITHUB_CLIENT_ID and self.GITHUB_CLIENT_SECRET),
+            "google": bool(self.GOOGLE_CLIENT_ID and self.GOOGLE_CLIENT_SECRET),
+        }
     
     class Config:
         env_file = ".env"
