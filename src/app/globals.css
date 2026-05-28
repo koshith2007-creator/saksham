@@ -1,26 +1,388 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&family=JetBrains+Mono:wght@300;400;500;600;700&display=swap');
 @import "tailwindcss";
 
+/* ============================================================
+   SAKSHAM — Design System
+   Cyberpunk-Modern with Premium Aesthetics
+   ============================================================ */
+
+@custom-variant dark (&:is(.dark *));
+
 :root {
-  --background: #ffffff;
-  --foreground: #171717;
+  /* Brand Colors */
+  --saksham-primary: 168 85% 52%;
+  --saksham-secondary: 262 83% 58%;
+  --saksham-accent: 45 97% 54%;
+  --saksham-danger: 0 84% 60%;
+  --saksham-warning: 38 92% 50%;
+  --saksham-success: 142 76% 36%;
+  --saksham-info: 199 89% 48%;
+
+  /* Light Mode */
+  --background: 0 0% 98%;
+  --foreground: 224 71% 4%;
+  --card: 0 0% 100%;
+  --card-foreground: 224 71% 4%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 224 71% 4%;
+  --primary: 168 85% 40%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 220 14% 96%;
+  --secondary-foreground: 220 9% 46%;
+  --muted: 220 14% 96%;
+  --muted-foreground: 220 9% 46%;
+  --accent: 220 14% 96%;
+  --accent-foreground: 224 71% 4%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 220 13% 91%;
+  --input: 220 13% 91%;
+  --ring: 168 85% 40%;
+  --radius: 0.75rem;
+  --sidebar: 0 0% 100%;
+  --sidebar-foreground: 224 71% 4%;
+  --sidebar-border: 220 13% 91%;
+  --glow-color: 168 85% 52%;
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+.dark {
+  --background: 224 71% 4%;
+  --foreground: 213 31% 91%;
+  --card: 222 47% 8%;
+  --card-foreground: 213 31% 91%;
+  --popover: 222 47% 8%;
+  --popover-foreground: 213 31% 91%;
+  --primary: 168 85% 52%;
+  --primary-foreground: 224 71% 4%;
+  --secondary: 222 47% 14%;
+  --secondary-foreground: 213 31% 91%;
+  --muted: 222 47% 14%;
+  --muted-foreground: 215 20% 55%;
+  --accent: 222 47% 14%;
+  --accent-foreground: 213 31% 91%;
+  --destructive: 0 84% 60%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 222 47% 16%;
+  --input: 222 47% 16%;
+  --ring: 168 85% 52%;
+  --sidebar: 222 47% 6%;
+  --sidebar-foreground: 213 31% 91%;
+  --sidebar-border: 222 47% 14%;
+  --glow-color: 168 85% 52%;
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* ============================================================
+   Base Styles
+   ============================================================ */
+* {
+  border-color: hsl(var(--border));
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  background: hsl(var(--background));
+  color: hsl(var(--foreground));
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+code, pre, .font-mono {
+  font-family: 'JetBrains Mono', 'Fira Code', monospace;
+}
+
+/* ============================================================
+   Animated Gradients
+   ============================================================ */
+@keyframes gradient-shift {
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
+}
+
+@keyframes pulse-glow {
+  0%, 100% { box-shadow: 0 0 20px hsla(var(--saksham-primary), 0.3); }
+  50% { box-shadow: 0 0 40px hsla(var(--saksham-primary), 0.6); }
+}
+
+@keyframes float {
+  0%, 100% { transform: translateY(0px); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes scan-line {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100vh); }
+}
+
+@keyframes typing {
+  from { width: 0; }
+  to { width: 100%; }
+}
+
+@keyframes blink-cursor {
+  0%, 100% { border-color: transparent; }
+  50% { border-color: hsl(var(--saksham-primary)); }
+}
+
+@keyframes fade-in-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes slide-in-right {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+@keyframes rotate-slow {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+@keyframes matrix-rain {
+  0% { transform: translateY(-100%); opacity: 1; }
+  100% { transform: translateY(100vh); opacity: 0; }
+}
+
+/* ============================================================
+   Utility Classes
+   ============================================================ */
+.gradient-text {
+  background: linear-gradient(135deg, hsl(var(--saksham-primary)), hsl(var(--saksham-secondary)));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.gradient-bg {
+  background: linear-gradient(135deg, hsl(var(--saksham-primary)), hsl(var(--saksham-secondary)));
+}
+
+.gradient-animated {
+  background: linear-gradient(270deg, hsl(var(--saksham-primary)), hsl(var(--saksham-secondary)), hsl(var(--saksham-accent)));
+  background-size: 600% 600%;
+  animation: gradient-shift 8s ease infinite;
+}
+
+.glass {
+  background: hsla(var(--card), 0.7);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid hsla(var(--border), 0.5);
+}
+
+.dark .glass {
+  background: hsla(222, 47%, 8%, 0.7);
+  border: 1px solid hsla(222, 47%, 20%, 0.3);
+}
+
+.glass-strong {
+  background: hsla(var(--card), 0.85);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid hsla(var(--border), 0.6);
+}
+
+.glow-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.glow-card::before {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: conic-gradient(
+    from 0deg,
+    transparent,
+    hsla(var(--saksham-primary), 0.1),
+    transparent,
+    hsla(var(--saksham-secondary), 0.1),
+    transparent
+  );
+  animation: rotate-slow 10s linear infinite;
+  z-index: -1;
+}
+
+.glow-border {
+  box-shadow: 
+    0 0 0 1px hsla(var(--saksham-primary), 0.2),
+    0 0 15px hsla(var(--saksham-primary), 0.1),
+    inset 0 0 15px hsla(var(--saksham-primary), 0.05);
+}
+
+.dark .glow-border {
+  box-shadow: 
+    0 0 0 1px hsla(var(--saksham-primary), 0.3),
+    0 0 20px hsla(var(--saksham-primary), 0.15),
+    inset 0 0 20px hsla(var(--saksham-primary), 0.05);
+}
+
+.hover-glow {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.hover-glow:hover {
+  box-shadow: 
+    0 0 20px hsla(var(--saksham-primary), 0.3),
+    0 4px 30px hsla(var(--saksham-primary), 0.15);
+  border-color: hsla(var(--saksham-primary), 0.5);
+  transform: translateY(-2px);
+}
+
+.animate-fade-in-up {
+  animation: fade-in-up 0.6s ease-out forwards;
+}
+
+.animate-slide-in-right {
+  animation: slide-in-right 0.5s ease-out forwards;
+}
+
+.animate-float {
+  animation: float 3s ease-in-out infinite;
+}
+
+.animate-pulse-glow {
+  animation: pulse-glow 2s ease-in-out infinite;
+}
+
+/* ============================================================
+   Terminal Aesthetics
+   ============================================================ */
+.terminal {
+  background: linear-gradient(180deg, hsl(222, 47%, 5%) 0%, hsl(222, 47%, 3%) 100%);
+  border: 1px solid hsla(var(--saksham-primary), 0.2);
+  border-radius: var(--radius);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 0.8125rem;
+  line-height: 1.6;
+}
+
+.terminal-line {
+  padding: 2px 0;
+}
+
+.terminal-prompt {
+  color: hsl(var(--saksham-primary));
+}
+
+.terminal-command {
+  color: hsl(213, 31%, 91%);
+}
+
+.terminal-output {
+  color: hsl(215, 20%, 55%);
+}
+
+.terminal-error {
+  color: hsl(var(--saksham-danger));
+}
+
+.terminal-success {
+  color: hsl(var(--saksham-success));
+}
+
+.terminal-warning {
+  color: hsl(var(--saksham-warning));
+}
+
+/* ============================================================
+   Severity Badges
+   ============================================================ */
+.severity-critical {
+  background: hsla(0, 84%, 60%, 0.15);
+  color: hsl(0, 84%, 60%);
+  border: 1px solid hsla(0, 84%, 60%, 0.3);
+}
+
+.severity-high {
+  background: hsla(25, 95%, 53%, 0.15);
+  color: hsl(25, 95%, 53%);
+  border: 1px solid hsla(25, 95%, 53%, 0.3);
+}
+
+.severity-medium {
+  background: hsla(38, 92%, 50%, 0.15);
+  color: hsl(38, 92%, 50%);
+  border: 1px solid hsla(38, 92%, 50%, 0.3);
+}
+
+.severity-low {
+  background: hsla(199, 89%, 48%, 0.15);
+  color: hsl(199, 89%, 48%);
+  border: 1px solid hsla(199, 89%, 48%, 0.3);
+}
+
+.severity-info {
+  background: hsla(215, 20%, 55%, 0.15);
+  color: hsl(215, 20%, 55%);
+  border: 1px solid hsla(215, 20%, 55%, 0.3);
+}
+
+/* ============================================================
+   Scrollbar
+   ============================================================ */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: hsla(var(--muted-foreground), 0.3);
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: hsla(var(--muted-foreground), 0.5);
+}
+
+/* ============================================================
+   Grid Background Pattern
+   ============================================================ */
+.grid-bg {
+  background-image: 
+    linear-gradient(hsla(var(--border), 0.3) 1px, transparent 1px),
+    linear-gradient(90deg, hsla(var(--border), 0.3) 1px, transparent 1px);
+  background-size: 60px 60px;
+}
+
+.dark .grid-bg {
+  background-image: 
+    linear-gradient(hsla(var(--border), 0.15) 1px, transparent 1px),
+    linear-gradient(90deg, hsla(var(--border), 0.15) 1px, transparent 1px);
+}
+
+/* ============================================================
+   Dot Pattern Background
+   ============================================================ */
+.dot-bg {
+  background-image: radial-gradient(hsla(var(--border), 0.5) 1px, transparent 1px);
+  background-size: 24px 24px;
+}
+
+/* ============================================================
+   Noise Texture
+   ============================================================ */
+.noise::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  pointer-events: none;
+  z-index: 1;
 }
