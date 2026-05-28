@@ -1,52 +1,27 @@
 # ============================================================
-# SAKSHAM Frontend — Next.js Production Dockerfile
+# SAKSHAM Backend - Railway fallback Dockerfile
 # ============================================================
+#
+# Railway should deploy from the `backend` root, where `backend/Dockerfile`
+# is the primary backend Dockerfile. This root Dockerfile is intentionally
+# backend-focused as a fallback for platforms that build from the repo root.
+# The frontend is deployed by Vercel and does not use this Dockerfile.
 
-FROM node:20-alpine AS base
+FROM python:3.11-slim
 
-# --- Dependencies stage ---
-FROM base AS deps
 WORKDIR /app
 
-COPY package.json package-lock.json* ./
-RUN npm ci --legacy-peer-deps
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    git curl && \
+    rm -rf /var/lib/apt/lists/*
 
-# --- Build stage ---
-FROM base AS builder
-WORKDIR /app
+COPY backend/requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY --from=deps /app/node_modules ./node_modules
-COPY . .
+COPY backend/ .
 
-# Set build-time env vars
-ARG NEXT_PUBLIC_API_URL=http://localhost:8000/api
-ENV NEXT_PUBLIC_API_URL=$NEXT_PUBLIC_API_URL
+RUN mkdir -p /tmp/saksham-scans
 
-# Disable Next.js telemetry during build
-ENV NEXT_TELEMETRY_DISABLED=1
+EXPOSE 8000
 
-RUN npm run build
-
-# --- Production runner stage ---
-FROM base AS runner
-WORKDIR /app
-
-ENV NODE_ENV=production
-ENV NEXT_TELEMETRY_DISABLED=1
-
-RUN addgroup --system --gid 1001 nodejs
-RUN adduser --system --uid 1001 nextjs
-
-# Copy built assets from builder
-COPY --from=builder /app/public ./public
-COPY --from=builder --chown=nextjs:nodejs /app/.next/standalone ./
-COPY --from=builder --chown=nextjs:nodejs /app/.next/static ./.next/static
-
-USER nextjs
-
-EXPOSE 3000
-
-ENV PORT=3000
-ENV HOSTNAME="0.0.0.0"
-
-CMD ["node", "server.js"]
+CMD ["sh", "-c", "uvicorn app.main:app --host 0.0.0.0 --port ${PORT:-8000}"]

@@ -33,6 +33,15 @@ if ($railwayConfig.deploy.healthcheckPath -ne "/api/health") {
   throw "backend/railway.json healthcheckPath must be /api/health."
 }
 
+$rootDockerfile = Get-Content (Join-Path $repoRoot "Dockerfile") -Raw
+if ($rootDockerfile -notmatch 'COPY backend/requirements\.txt') {
+  throw "Root Dockerfile must build the backend fallback, not the frontend."
+}
+
+if ($rootDockerfile -match 'nextjs|npm run build|node server\.js') {
+  throw "Root Dockerfile still looks like a Next.js build."
+}
+
 Write-Host "Deployment files look good."
 Write-Host ""
 Write-Host "Railway backend service:"
