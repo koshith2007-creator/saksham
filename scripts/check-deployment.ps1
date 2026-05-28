@@ -8,6 +8,7 @@ $requiredFiles = @(
   "src/lib/api.ts",
   "backend/Dockerfile",
   "backend/railway.json",
+  "railway.json",
   "backend/requirements.txt",
   "backend/app/main.py"
 )
@@ -31,6 +32,19 @@ if ($dockerfile -notmatch '\$\{PORT:-8000\}') {
 $railwayConfig = Get-Content (Join-Path $backendRoot "railway.json") -Raw | ConvertFrom-Json
 if ($railwayConfig.deploy.healthcheckPath -ne "/api/health") {
   throw "backend/railway.json healthcheckPath must be /api/health."
+}
+
+$rootRailwayConfig = Get-Content (Join-Path $repoRoot "railway.json") -Raw | ConvertFrom-Json
+if ($rootRailwayConfig.build.builder -ne "DOCKERFILE") {
+  throw "Root railway.json must force the Dockerfile builder."
+}
+
+if ($rootRailwayConfig.build.dockerfilePath -ne "Dockerfile") {
+  throw "Root railway.json must point at the backend fallback Dockerfile."
+}
+
+if ($rootRailwayConfig.deploy.healthcheckPath -ne "/api/health") {
+  throw "Root railway.json healthcheckPath must be /api/health."
 }
 
 $rootDockerfile = Get-Content (Join-Path $repoRoot "Dockerfile") -Raw
