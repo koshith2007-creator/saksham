@@ -35,6 +35,12 @@ async def lifespan(app: FastAPI):
     """Application lifespan events."""
     logger.info("🚀 SAKSHAM starting up", version=settings.APP_VERSION, env=settings.ENVIRONMENT)
     logger.info("🔧 Demo mode", enabled=settings.DEMO_MODE)
+    logger.info(
+        "Deployment config status",
+        frontend_url=settings.FRONTEND_URL,
+        cors_origins=settings.cors_origins_list,
+        oauth_configured=settings.oauth_configured,
+    )
     yield
     logger.info("🛑 SAKSHAM shutting down")
 
