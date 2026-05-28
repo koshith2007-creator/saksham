@@ -7,6 +7,7 @@ from fastapi import FastAPI, WebSocket, WebSocketDisconnect
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
+import os
 import structlog
 import uuid
 from datetime import datetime, timezone
@@ -30,6 +31,28 @@ logger = structlog.get_logger()
 ws_manager = ConnectionManager()
 
 
+CONFIG_ENV_KEYS = [
+    "ENVIRONMENT",
+    "DEMO_MODE",
+    "CORS_ORIGINS",
+    "FRONTEND_URL",
+    "GOOGLE_CLIENT_ID",
+    "GOOGLE_CLIENT_SECRET",
+    "GITHUB_CLIENT_ID",
+    "GITHUB_CLIENT_SECRET",
+    "SUPABASE_URL",
+    "SUPABASE_ANON_KEY",
+    "SUPABASE_SERVICE_ROLE_KEY",
+    "UPSTASH_REDIS_URL",
+    "UPSTASH_REDIS_TOKEN",
+]
+
+
+def env_presence() -> dict[str, bool]:
+    """Report whether deployment env vars exist without exposing values."""
+    return {key: bool(os.getenv(key)) for key in CONFIG_ENV_KEYS}
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Application lifespan events."""
@@ -40,6 +63,7 @@ async def lifespan(app: FastAPI):
         frontend_url=settings.FRONTEND_URL,
         cors_origins=settings.cors_origins_list,
         oauth_configured=settings.oauth_configured,
+        env_present=env_presence(),
     )
     yield
     logger.info("🛑 SAKSHAM shutting down")
@@ -89,6 +113,7 @@ async def config_status():
         "cors_origins": settings.cors_origins_list,
         "oauth_configured": settings.oauth_configured,
         "frontend_url": settings.FRONTEND_URL,
+        "env_present": env_presence(),
     }
 
 
